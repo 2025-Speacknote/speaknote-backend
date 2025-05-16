@@ -13,14 +13,18 @@ public class AnnotationService {
 
     private final AnnotationRepository annotationRepository;
 
-    public void saveAnnotation(String sessionId, String original, String refined) {
+    public void saveAnnotation(String sessionId, String original, String refined, int pageNumber, float x, float y) {
         AnnotationBlock block = AnnotationBlock.builder()
                 .sessionId(sessionId)
                 .originalText(original)
                 .refinedText(refined)
+                .pageNumber(pageNumber)
+                .x(x)
+                .y(y)
                 .createdAt(LocalDateTime.now())
                 .build();
 
         annotationRepository.save(block);
     }
+
 }

@@ -15,7 +15,7 @@ public class GptService {
     public CompletableFuture<String> refineTextAsync(String inputText) {
         log.info("GPT 요청 시작: {}", inputText);
 
-        // TODO: 여기를 실제 OpenAI 호출로 교체할 것
+        // 실제 API 넣기
         String refined = "[GPT 정제 결과] " + inputText;
 
         // 응답을 가짜로 조금 지연
