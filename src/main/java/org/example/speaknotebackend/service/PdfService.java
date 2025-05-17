@@ -9,10 +9,18 @@ import com.itextpdf.layout.Document;
 import lombok.RequiredArgsConstructor;
 import org.example.speaknotebackend.domain.entity.AnnotationBlock;
 import org.example.speaknotebackend.domain.repository.AnnotationRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +28,10 @@ public class PdfService {
 
     private final AnnotationRepository annotationRepository;
 
-    public byte[] generatePdfWithAnnotations() throws Exception {
+    @Value("${custom.pdf.upload-path}")
+    private String uploadPath;
+
+    public byte[] generatePdfWithAnnotations(String fileId) throws Exception {
         List<AnnotationBlock> annotations = annotationRepository.findAll();
 
         // 페이지 수 계산
@@ -57,4 +68,30 @@ public class PdfService {
         doc.close();
         return out.toByteArray();
     }
+
+    public String saveTempPDF(MultipartFile file) {
+        try {
+            // 저장할 임시 폴더 경로
+            Path uploadDir = Paths.get("uploads/temp");
+
+            // 폴더가 없다면 생성
+            if (!Files.exists(uploadDir)) {
+                Files.createDirectories(uploadDir);
+            }
+
+            // UUID 기반 파일명 생성
+            String fileId = UUID.randomUUID().toString();
+            String fileName = fileId + ".pdf";
+            Path filePath = uploadDir.resolve(fileName);
+
+            // 파일 저장
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // 저장한 파일 ID 반환
+            return fileId;
+        } catch (IOException e) {
+            throw new RuntimeException("PDF 임시 저장 실패", e);
+        }
+    }
+
 }

@@ -15,7 +15,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/pdf").permitAll()   // PDF 다운로드는 로그인 없이 허용
+                        .requestMatchers("/","/api/pdf/**").permitAll()   // PDF 다운로드는 로그인 없이 허용
                         .anyRequest().authenticated()              // 나머지는 로그인 필요
                 )
                 .formLogin(withDefaults()); // 기본 로그인 폼 제공
