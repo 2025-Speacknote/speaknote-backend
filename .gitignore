@@ -5,6 +5,14 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Apple Silicon universal binary cache
+__MACOSX/
+
 ### STS ###
 .apt_generated
 .classpath

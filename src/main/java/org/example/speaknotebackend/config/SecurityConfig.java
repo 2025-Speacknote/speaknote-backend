@@ -15,8 +15,15 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/","/api/pdf/**").permitAll()   // PDF 다운로드는 로그인 없이 허용
-                        .anyRequest().authenticated()              // 나머지는 로그인 필요
+                        .requestMatchers(
+                                "/",                         // 루트
+                                "/api/pdf/**",               // PDF 관련 API
+                                "/swagger-ui/**",            // Swagger UI HTML/CSS/JS 경로
+                                "/v3/api-docs/**",           // OpenAPI JSON 경로
+                                "/swagger-resources/**",     // (일부 swagger-ui 라이브러리)
+                                "/webjars/**"                // swagger-ui에 필요한 js 라이브러리
+                                ).permitAll()                  // PDF 다운로드는 로그인 없이 허용
+                        .anyRequest().authenticated()          // 나머지는 로그인 필요
                 )
                 .formLogin(withDefaults()); // 기본 로그인 폼 제공
 
