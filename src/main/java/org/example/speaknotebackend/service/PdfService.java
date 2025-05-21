@@ -15,6 +15,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,6 +34,9 @@ public class PdfService {
 
     @Value("${custom.pdf.upload-path}")
     private String uploadPath;
+
+    @Value("${custom.pdf.allowed-origin}")
+    private String fastapiBaseUrl;
 
     public byte[] generatePdfWithAnnotations(String fileId) throws Exception {
         List<AnnotationBlock> annotations = annotationRepository.findAll();
@@ -87,11 +94,64 @@ public class PdfService {
             // 파일 저장
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
+
+            //FastAPI 호출
+            sendPdfFileToFastAPI(file);
+
+
             // 저장한 파일 ID 반환
             return fileId;
         } catch (IOException e) {
             throw new RuntimeException("PDF 임시 저장 실패", e);
         }
     }
+
+    public void sendPdfFileToFastAPI(MultipartFile file) {
+        try {
+            String boundary = "----SpringToFastAPI";
+            HttpClient client = HttpClient.newHttpClient();
+
+            // 바디 만들기
+            String fileName = file.getOriginalFilename();
+            String mimeType = file.getContentType();
+            byte[] fileBytes = file.getBytes();
+
+            String bodyHeader = "--" + boundary + "\r\n" +
+                    "Content-Disposition: form-data; name=\"file\"; filename=\"" + fileName + "\"\r\n" +
+                    "Content-Type: " + mimeType + "\r\n\r\n";
+
+            String bodyFooter = "\r\n--" + boundary + "--\r\n";
+
+            // 전체 바디 조립
+            byte[] requestBody = concatenate(
+                    bodyHeader.getBytes(),
+                    fileBytes,
+                    bodyFooter.getBytes()
+            );
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:9000/predict/pdf"))
+                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
+                    .build();
+
+            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenAccept(response -> {
+                        System.out.println("FastAPI 응답: " + response.body());
+                    });
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private byte[] concatenate(byte[]... parts) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        for (byte[] part : parts) {
+            outputStream.write(part);
+        }
+        return outputStream.toByteArray();
+    }
+
 
 }
