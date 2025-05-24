@@ -57,6 +57,9 @@ dependencies {
 
     // WebSocket
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // Google STT
+    implementation 'com.google.cloud:google-cloud-speech:4.56.0'
 }
 
 dependencyManagement {
