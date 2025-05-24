@@ -44,5 +44,7 @@ out/
 ### VS Code ###
 .vscode/
 
-
 !**/src/main/resources/application-local.properties
+
+# Google Cloud STT key
+src/main/resources/stt-credentials.json
