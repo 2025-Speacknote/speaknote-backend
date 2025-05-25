@@ -39,7 +39,6 @@ public class GoogleSpeechService {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final TextRefineService textRefineService;
 
-
     /**
      * 애플리케이션 시작 시 Google STT 클라이언트를 초기화한다.
      */

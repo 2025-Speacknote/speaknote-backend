@@ -91,5 +91,6 @@ public class SttTextBuffer {
     public synchronized void clearAll() {
         context.setLength(0);
         lastFullText = "";
+
     }
 }

@@ -1,5 +1,6 @@
 package org.example.speaknotebackend.websocket;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.speaknotebackend.service.GoogleSpeechService;
@@ -12,9 +13,10 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.BinaryWebSocketHandler;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
 
 @Slf4j
 @Component
@@ -28,7 +30,7 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("클라이언트 WebSocket 연결됨: {}", session.getId());
 
-        // STT 스트리밍 시작
+      // STT 스트리밍 시작
         googleSpeechService.startStreaming();
     }
 
