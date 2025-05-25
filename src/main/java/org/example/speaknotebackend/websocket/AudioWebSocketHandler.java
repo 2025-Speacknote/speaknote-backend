@@ -1,5 +1,6 @@
 package org.example.speaknotebackend.websocket;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.speaknotebackend.service.GoogleSpeechService;
@@ -12,9 +13,10 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.BinaryWebSocketHandler;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
 
 @Slf4j
 @Component
@@ -34,8 +36,28 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
 
             // AI 서버에 인식한 텍스트 전송
             // AI 서버 켜고 활성화하면 됨
-//            String result = textRefineService.refine(originalText);
-//            log.info("AI 서버에 original text 전송 결과: {}", result);
+
+            //
+            CompletableFuture.runAsync(() -> {
+                try {
+                    Map<String, Object> aiResponse = textRefineService.refine(originalText);
+                    log.info("AI 서버에 original text 전송 결과: {}", originalText);
+                    Map<String, Object> payload = new HashMap<>();
+                    payload.put("refinedText", aiResponse.get("refinedText"));
+                    payload.put("refinedMarkdown", aiResponse.get("refinedMarkdown"));
+
+                    ObjectMapper mapper = new ObjectMapper();
+                    String json = mapper.writeValueAsString(payload);
+                    session.sendMessage(new TextMessage(json));
+
+                    log.info("정제된 결과 WebSocket 전송 완료");
+                    log.info("AI 응답 내용: refinedText={}, refinedMarkdown={}",
+                            aiResponse.get("refinedText"), aiResponse.get("refinedMarkdown"));
+
+                } catch (Exception e) {
+                    log.error("AI 정제 및 전송 중 오류", e);
+                }
+            });
         });
     }
 
