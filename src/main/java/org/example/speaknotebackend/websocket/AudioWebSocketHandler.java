@@ -28,15 +28,8 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("클라이언트 WebSocket 연결됨: {}", session.getId());
 
-        // STT 스트리밍 시작 및 콜백 등록
-        googleSpeechService.startStreaming(originalText -> {
-            log.info("인식된 텍스트: {}", originalText);
-
-            // AI 서버에 인식한 텍스트 전송
-            // AI 서버 켜고 활성화하면 됨
-//            String result = textRefineService.refine(originalText);
-//            log.info("AI 서버에 original text 전송 결과: {}", result);
-        });
+        // STT 스트리밍 시작
+        googleSpeechService.startStreaming();
     }
 
     @Override

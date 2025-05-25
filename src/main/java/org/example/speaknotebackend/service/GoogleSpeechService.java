@@ -13,6 +13,9 @@ import org.example.speaknotebackend.util.SttTextBuffer;
 import org.springframework.stereotype.Service;
 
 import java.io.FileInputStream;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -33,13 +36,15 @@ public class GoogleSpeechService {
     private final AtomicBoolean streamingStarted = new AtomicBoolean(false);
 
     private final SttTextBuffer textBuffer = new SttTextBuffer();
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final TextRefineService textRefineService;
 
 
     /**
      * 애플리케이션 시작 시 Google STT 클라이언트를 초기화한다.
      */
-    @PostConstruct
-    public void init() {
+    public GoogleSpeechService(TextRefineService textRefineService) throws Exception {
+        this.textRefineService = textRefineService;
         try {
             GoogleCredentials credentials = GoogleCredentials.fromStream(
                     new FileInputStream("src/main/resources/stt-credentials.json")
@@ -57,14 +62,43 @@ public class GoogleSpeechService {
         }
     }
 
+//    @PostConstruct
+//    public void init() {
+//        try {
+//            GoogleCredentials credentials = GoogleCredentials.fromStream(
+//                    new FileInputStream("src/main/resources/stt-credentials.json")
+//            );
+//
+//            // 인증 정보를 포함한 STT 클라이언트 설정
+//            SpeechSettings settings = SpeechSettings.newBuilder()
+//                    .setCredentialsProvider(() -> credentials)
+//                    .build();
+//            speechClient = SpeechClient.create(settings);
+//            log.info("Google SpeechClient 초기화 완료");
+//
+//        } catch (Exception e) {
+//            log.error("Google STT 초기화 실패", e);
+//        }
+//    }
+
 
     /**
-     * Google STT 스트리밍을 시작하고, 실시간으로 변환된 텍스트를 콜백으로 전달한다.
-     * @param onTranscriptCallback 변환된 텍스트 수신 콜백
+     * Google STT 스트리밍을 시작한다.
      */
-    public void startStreaming(Consumer<String> onTranscriptCallback) {
+    public void startStreaming() {
         try {
-            this.transcriptConsumer = onTranscriptCallback;
+            streamingStarted.set(true);
+
+            // 1초마다 누적 텍스트 전송
+            scheduler.scheduleAtFixedRate(() -> {
+                String context = textBuffer.getAccumulatedContextAndClear();
+                log.warn("[AI 전송] 누적 context: {}", context);
+                if (context != null && !context.isBlank()) {
+                    // TODO AI 서버 켠 후 활성화하면 됨
+//                    String result = textRefineService.refine(context);
+//                    log.info("AI 서버 정제 결과: {}", result);
+                }
+            }, 5, 5, TimeUnit.SECONDS); // 5초 후 최초 실행, 이후 5초마다 반복
 
             // 양방향 스트리밍을 위한 BidiStreamObserver 구현
             speechClient.streamingRecognizeCallable().call(
@@ -81,13 +115,8 @@ public class GoogleSpeechService {
                             for (StreamingRecognitionResult result : response.getResultsList()) {
                                 if (result.getAlternativesCount() > 0) {
                                     String transcript = result.getAlternatives(0).getTranscript();
-                                    String newText = textBuffer.appendAndGetNewContent(transcript);
-//                                    log.warn("newText: {}", newText);
-                                    if (newText != null && !newText.isBlank()) {
-                                        transcriptConsumer.accept(newText); // 콜백 전달
-                                    } else {
-                                        log.error("전달 받은 데이터 없음");
-                                    }
+                                    textBuffer.append(transcript);
+//                                    log.warn("transcript: {}", transcript);
                                 }
                             }
                         }
@@ -162,7 +191,6 @@ public class GoogleSpeechService {
                     .setAudioContent(ByteString.copyFrom(audioBytes))
                     .build();
             requestStream.send(audioRequest);
-//            log.debug("STT로 chunk 전송: {} bytes", audioBytes.length);
         } catch (Exception e) {
             log.warn("오디오 chunk 전송 실패", e);
         }
