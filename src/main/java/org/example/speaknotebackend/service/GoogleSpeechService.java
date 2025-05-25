@@ -9,6 +9,7 @@ import com.google.cloud.speech.v1.*;
 import com.google.protobuf.ByteString;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.example.speaknotebackend.util.SttTextBuffer;
 import org.springframework.stereotype.Service;
 
 import java.io.FileInputStream;
@@ -30,6 +31,9 @@ public class GoogleSpeechService {
 
     // 스트리밍 세션이 활성화 상태인지를 알려주는 flag
     private final AtomicBoolean streamingStarted = new AtomicBoolean(false);
+
+    private final SttTextBuffer textBuffer = new SttTextBuffer();
+
 
     /**
      * 애플리케이션 시작 시 Google STT 클라이언트를 초기화한다.
@@ -77,8 +81,10 @@ public class GoogleSpeechService {
                             for (StreamingRecognitionResult result : response.getResultsList()) {
                                 if (result.getAlternativesCount() > 0) {
                                     String transcript = result.getAlternatives(0).getTranscript();
-                                    if (!transcript.isEmpty()) {
-                                        transcriptConsumer.accept(transcript); // 콜백 전달
+                                    String newText = textBuffer.appendAndGetNewContent(transcript);
+//                                    log.warn("newText: {}", newText);
+                                    if (newText != null && !newText.isBlank()) {
+                                        transcriptConsumer.accept(newText); // 콜백 전달
                                     } else {
                                         log.error("전달 받은 데이터 없음");
                                     }
