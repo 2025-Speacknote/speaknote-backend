@@ -30,35 +30,8 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("클라이언트 WebSocket 연결됨: {}", session.getId());
 
-        // STT 스트리밍 시작 및 콜백 등록
-        googleSpeechService.startStreaming(originalText -> {
-            log.info("인식된 텍스트: {}", originalText);
-
-            // AI 서버에 인식한 텍스트 전송
-            // AI 서버 켜고 활성화하면 됨
-
-            //
-            CompletableFuture.runAsync(() -> {
-                try {
-                    Map<String, Object> aiResponse = textRefineService.refine(originalText);
-                    log.info("AI 서버에 original text 전송 결과: {}", originalText);
-                    Map<String, Object> payload = new HashMap<>();
-                    payload.put("refinedText", aiResponse.get("refinedText"));
-                    payload.put("refinedMarkdown", aiResponse.get("refinedMarkdown"));
-
-                    ObjectMapper mapper = new ObjectMapper();
-                    String json = mapper.writeValueAsString(payload);
-                    session.sendMessage(new TextMessage(json));
-
-                    log.info("정제된 결과 WebSocket 전송 완료");
-                    log.info("AI 응답 내용: refinedText={}, refinedMarkdown={}",
-                            aiResponse.get("refinedText"), aiResponse.get("refinedMarkdown"));
-
-                } catch (Exception e) {
-                    log.error("AI 정제 및 전송 중 오류", e);
-                }
-            });
-        });
+      // STT 스트리밍 시작
+        googleSpeechService.startStreaming();
     }
 
     @Override
