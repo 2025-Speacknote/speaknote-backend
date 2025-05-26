@@ -31,7 +31,7 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
         log.info("클라이언트 WebSocket 연결됨: {}", session.getId());
 
       // STT 스트리밍 시작
-        googleSpeechService.startStreaming();
+        googleSpeechService.startStreaming(session);
     }
 
     @Override
