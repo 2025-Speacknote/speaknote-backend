@@ -15,7 +15,7 @@ import java.util.Map;
 public class TextRefineService {
 
     private final RestTemplate restTemplate = new RestTemplate();
-    
+
     @Value("${ai.server.url}")
     private String aiServerUrl;
     /**

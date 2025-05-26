@@ -81,6 +81,7 @@ public class GoogleSpeechService {
                         // TODO AI 서버 켠 후 활성화하면 됨
                         Map<String,Object> result = textRefineService.refine(context);
                         log.info("AI 서버 정제 결과: {}", result);
+                      
                         Map<String, Object> payload = new HashMap<>();
                         payload.put("refinedText", result.get("refinedText"));
                         payload.put("refinedMarkdown", result.get("refinedMarkdown"));
