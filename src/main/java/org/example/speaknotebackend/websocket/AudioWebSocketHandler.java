@@ -47,7 +47,7 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
         googleSpeechService.sendAudioChunk(audioBytes);
     }
 
-    // TODO 사용자가 녹음 중지 누르면 종료 해야 함
+    @Override
     public void afterConnectionClosed(
             WebSocketSession session, CloseStatus status) {
         log.info("WebSocket 연결 종료 {}", session.getId());
@@ -55,4 +55,14 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
         // STT 종료
         googleSpeechService.stopStreaming();
     }
+
+    // 사용자가 녹음 중지 누르면 종료
+    @Override
+     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+         String msg = message.getPayload();
+         if ("stop-recording".equals(msg)) {
+             log.info("클라이언트로부터 stop-recording 수신");
+             googleSpeechService.stopStreaming();
+         }
+     }
 }
