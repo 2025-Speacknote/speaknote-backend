@@ -1,5 +1,6 @@
 package org.example.speaknotebackend.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.grpc.GrpcCallContext;
 import com.google.api.gax.rpc.ClientStream;
 import com.google.api.gax.rpc.BidiStreamObserver;
@@ -7,12 +8,15 @@ import com.google.api.gax.rpc.StreamController;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.speech.v1.*;
 import com.google.protobuf.ByteString;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.example.speaknotebackend.util.SttTextBuffer;
 import org.springframework.stereotype.Service;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.io.FileInputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -61,30 +65,10 @@ public class GoogleSpeechService {
         }
     }
 
-//    @PostConstruct
-//    public void init() {
-//        try {
-//            GoogleCredentials credentials = GoogleCredentials.fromStream(
-//                    new FileInputStream("src/main/resources/stt-credentials.json")
-//            );
-//
-//            // 인증 정보를 포함한 STT 클라이언트 설정
-//            SpeechSettings settings = SpeechSettings.newBuilder()
-//                    .setCredentialsProvider(() -> credentials)
-//                    .build();
-//            speechClient = SpeechClient.create(settings);
-//            log.info("Google SpeechClient 초기화 완료");
-//
-//        } catch (Exception e) {
-//            log.error("Google STT 초기화 실패", e);
-//        }
-//    }
-
-
     /**
      * Google STT 스트리밍을 시작한다.
      */
-    public void startStreaming() {
+    public void startStreaming(WebSocketSession session) {
         try {
             streamingStarted.set(true);
 
@@ -93,9 +77,26 @@ public class GoogleSpeechService {
                 String context = textBuffer.getAccumulatedContextAndClear();
                 log.warn("[AI 전송] 누적 context: {}", context);
                 if (context != null && !context.isBlank()) {
-                    // TODO AI 서버 켠 후 활성화하면 됨
-//                    String result = textRefineService.refine(context);
-//                    log.info("AI 서버 정제 결과: {}", result);
+                    try {
+                        // TODO AI 서버 켠 후 활성화하면 됨
+                        Map<String,Object> result = textRefineService.refine(context);
+                        log.info("AI 서버 정제 결과: {}", result);
+                        Map<String, Object> payload = new HashMap<>();
+                        payload.put("refinedText", result.get("refinedText"));
+                        payload.put("refinedMarkdown", result.get("refinedMarkdown"));
+
+                        ObjectMapper mapper = new ObjectMapper();
+                        String json = mapper.writeValueAsString(payload);
+                        session.sendMessage(new TextMessage(json));
+
+                        log.info("정제된 결과 WebSocket 전송 완료");
+                        log.info("AI 응답 내용: refinedText={}, refinedMarkdown={}",
+                                result.get("refinedText"), result.get("refinedMarkdown"));
+
+                    } catch (Exception e) {
+                        log.error("AI 정제 및 전송 중 오류", e);
+                    }
+
                 }
             }, 5, 5, TimeUnit.SECONDS); // 5초 후 최초 실행, 이후 5초마다 반복
 
@@ -204,6 +205,7 @@ public class GoogleSpeechService {
                 requestStream.closeSend();
                 requestStream = null;
                 streamingStarted.set(false);
+                textBuffer.clearAll();  // ← 반드시 버퍼 초기화!
                 log.info("STT 스트리밍 종료");
             }
         } catch (Exception e) {
